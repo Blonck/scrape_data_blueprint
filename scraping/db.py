@@ -138,7 +138,8 @@ class DbHandler():
                     values(team_name=team, player_name=player, year=year)
                 )
                 c.execute(stmt)
-            elif r[0] != team:
+            # change relation if it differs
+            elif r != team:
                 stmt = (
                     update(team_player).
                     where(and_(team_player.c.player_name == player,
@@ -154,11 +155,11 @@ class DbHandler():
         """Insert player salary if not existent, else updates it"""
         with self.engine.connect() as c:
             stmt = (
-                select(player_salaries).
+                select(player_salaries.c.salary, player_salaries.c.salary_currency).
                 where(and_(player_salaries.c.player_name == player,
                            player_salaries.c.year == year))
             )
-            r = c.execute(stmt).scalar()
+            r = c.execute(stmt).one_or_none()
 
             # insert salary if not already in DB
             if r is None:
@@ -171,7 +172,18 @@ class DbHandler():
                 )
 
                 c.execute(stmt)
-            # TODO update if salary does not fit
+            # change salary if it differs
+            elif r[0] != salary or r[1] != salary_currency:
+                stmt = (
+                    update(player_salaries).
+                    where(and_(player_salaries.c.player_name == player,
+                               player_salaries.c.year == year)).
+                    values(salary=salary, salary_currency=salary_currency)
+                )
+                c.execute(stmt)
+            else:
+                # entry already correct
+                pass
 
     def merge_player_stats(self, player: str, year: int, stats: Dict[str, Union[str, float, int]]):
         """
@@ -197,7 +209,7 @@ class DbHandler():
                                player_stats.c.year == year,
                                player_stats.c.stat_name == stat))
                 )
-                r = c.execute(stmt).scalar()
+                r = c.execute(stmt).one()
 
                 if r is None:
                     t = type2str(value)
