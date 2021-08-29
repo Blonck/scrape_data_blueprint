@@ -1,10 +1,10 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Union
 
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy import Table, Column, UniqueConstraint, CheckConstraint, ForeignKey, String, Integer
-from sqlalchemy import select, and_, insert, values
+from sqlalchemy import select, and_, insert
 
-from models import PlayerYearModel
+from .models import PlayerYearModel
 
 
 metadata_obj = MetaData()
@@ -57,7 +57,10 @@ player_stats = Table(
     Column('player_name', String(250), ForeignKey("nba_players.name"), nullable=False),
     Column('year', Integer, nullable=False),
     Column('season', String(250), nullable=False),
-    UniqueConstraint('year', 'player_name', 'season', name='uc_year_season_pname'),
+    Column('stat_name', String(250), nullable=False),
+    Column('stat_value', String(16), nullable=False),
+    Column('stat_type', String(16), nullable=False),
+    UniqueConstraint('year', 'player_name', 'season', 'stat_name', name='uc_year_season_pname_stat'),
     CheckConstraint("season in ('postseason', 'regularseason')")
 )
 
@@ -70,7 +73,10 @@ class DbHandler():
 
     TODOS: provide interface which works with list of players/teams (optimize for executemany)
     """
-    def __init__(self, sqlite_url='sqlite:///:memory:'):
+    def __init__(self, sqlite_url=None):
+        if not sqlite_url:
+            sqlite_url = 'sqlite:///:memory:'
+
         self.engine = create_engine(sqlite_url)
         metadata_obj.create_all(self.engine)
 
@@ -129,13 +135,13 @@ class DbHandler():
             if r is None:
                 stmt = (
                     insert(team_player).
-                    values(team_name=player.team, player_name=player, year=year)
+                    values(team_name=team, player_name=player, year=year)
                 )
                 c.execute(stmt)
             # TODO update if team does not fit
 
     def merge_player_salary(self, player: str, year: int, salary: int, salary_currecny: str) -> None:
-        """Insert player salary of not existent, else updates it"""
+        """Insert player salary if not existent, else updates it"""
         with self.engine.connect() as c:
             stmt = (
                 select(player_salaries).
@@ -156,6 +162,47 @@ class DbHandler():
 
                 c.execute(stmt)
             # TODO update if salary does not fit
+
+    def merge_player_stats(self, player: str, year: int, stats: Dict[str, Union[str, float, int]]):
+        """
+        Insert player statistics for given year if not existent, else updates it
+
+        The statistics must be one of the following types: 'str', 'float', 'int'.
+        """
+        def type2str(value):
+            if type(value) == int:
+                return 'Integer'
+            elif type(value) == float:
+                return 'Float'
+            elif type(value) == str:
+                return 'String'
+            else:
+                raise ValueError("Unexpected type for statistic")
+
+        with self.engine.connect() as c:
+            for stat, value in stats.items():
+                stmt = (
+                    select(player_stats).
+                    where(and_(player_stats.c.player_name == player,
+                               player_stats.c.year == year,
+                               player_stats.c.stat_name == stat))
+                )
+                r = c.execute(stmt).scalar()
+
+                if r is None:
+                    t = type2str(value)
+                    v = str(value)
+                    stmt = (
+                        insert(player_stats).
+                        values(player_name=player,
+                               year=year,
+                               season='postseason',
+                               stat_name=stat,
+                               stat_value=v,
+                               stat_type=t)
+                    )
+                    c.execute(stmt)
+                # TODO: update existing statistics if changed
 
     def fetch_player_salary_playoffs(self, year: int, limit: Optional[int] = None) -> List[PlayerYearModel]:
         """
