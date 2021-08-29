@@ -72,7 +72,7 @@ def fetch_and_print(year, sqlite, quiet, debug, skip_scraping):
             if 'salary' in player.attributes and 'salary_currency' in player.attributes:
                 nba_db.merge_player_salary(player=player.name, year=year,
                                            salary=player.attributes['salary'],
-                                           salary_currecny=player.attributes['salary_currency'])
+                                           salary_currency=player.attributes['salary_currency'])
             else:
                 logging.error(f'Could not find salary in player `{player.name}` attributes: `{player.attributes}`')
 

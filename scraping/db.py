@@ -2,7 +2,7 @@ from typing import List, Optional, Dict, Union
 
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy import Table, Column, UniqueConstraint, CheckConstraint, ForeignKey, String, Integer
-from sqlalchemy import select, and_, insert
+from sqlalchemy import select, and_, insert, update
 
 from .models import PlayerYearModel
 
@@ -46,7 +46,7 @@ player_salaries = Table(
     Column('player_name', String(250), ForeignKey("nba_players.name"), nullable=False),
     Column('year', Integer, nullable=False),
     Column('salary', Integer, nullable=False),
-    Column('salary_currecny', String(50), nullable=False),
+    Column('salary_currency', String(50), nullable=False),
     UniqueConstraint('year', 'player_name', name='uc_year_pname'),
     comment="Salary for each player per year"
 )
@@ -125,7 +125,7 @@ class DbHandler():
         """Insert team <-> player relation if not existent, else updates it"""
         with self.engine.connect() as c:
             stmt = (
-                select(team_player).
+                select(team_player.c.team_name).
                 where(and_(team_player.c.player_name == player,
                            team_player.c.year == year))
             )
@@ -138,9 +138,19 @@ class DbHandler():
                     values(team_name=team, player_name=player, year=year)
                 )
                 c.execute(stmt)
-            # TODO update if team does not fit
+            elif r[0] != team:
+                stmt = (
+                    update(team_player).
+                    where(and_(team_player.c.player_name == player,
+                               team_player.c.year == year)).
+                    values(team_name=team)
+                )
+                c.execute(stmt)
+            else:
+                # entry already correct
+                pass
 
-    def merge_player_salary(self, player: str, year: int, salary: int, salary_currecny: str) -> None:
+    def merge_player_salary(self, player: str, year: int, salary: int, salary_currency: str) -> None:
         """Insert player salary if not existent, else updates it"""
         with self.engine.connect() as c:
             stmt = (
@@ -157,7 +167,7 @@ class DbHandler():
                     values(player_name=player,
                            year=year,
                            salary=salary,
-                           salary_currecny=salary_currecny)
+                           salary_currency=salary_currency)
                 )
 
                 c.execute(stmt)
@@ -217,7 +227,7 @@ class DbHandler():
         with self.engine.connect() as c:
             stmt = (
                 select(playoff_team.c.year, playoff_team.c.team_name, team_player.c.player_name,
-                       player_salaries.c.salary, player_salaries.c.salary_currecny).
+                       player_salaries.c.salary, player_salaries.c.salary_currency).
                 select_from(
                     playoff_team.
                     join(team_player, team_player.c.team_name == playoff_team.c.team_name).
