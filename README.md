@@ -30,8 +30,8 @@ pip install -r requirements.txt
 
 ## How to execute
 
-The following command will scrape the player salaries and statistics for the given year
-and store it into an sqlite database in the local directory.
+The following command will scrape the player salaries and statistics for the given year,
+store it into an sqlite database in the local directory, and print the players with the top 10 salaries.
 ```bash
-python fetch_nba_salary.py 2021 --sqlite ./nba.db
+python fetch_nba_salary.py 2021 --quiet --sqlite ./nba.db
 ```

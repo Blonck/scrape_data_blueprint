@@ -232,5 +232,7 @@ class DbHandler():
             r = c.execute(stmt)
 
             for row in r:
-                att = {'salary': row[3], 'salary_currecny': row[4]}
+                att = {'salary': row[3], 'salary_currency': row[4]}
                 result.append(PlayerYearModel(year=row[0], team=row[1], name=row[2], attributes=att))
+
+        return result
