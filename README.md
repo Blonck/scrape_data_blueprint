@@ -28,7 +28,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## How to execute
 
-## Execute the script
-
-TODO
+The following command will scrape the player salaries and statistics for the given year
+and store it into an sqlite database in the local directory.
+```bash
+python fetch_nba_salary.py 2021 --sqlite ./nba.db
+```
