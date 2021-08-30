@@ -35,3 +35,9 @@ store it into an sqlite database in the local directory, and print the players w
 ```bash
 python fetch_nba_salary.py 2021 --quiet --sqlite ./nba.db
 ```
+
+## Run unittest
+
+```bash
+pyton -m unittest
+```
