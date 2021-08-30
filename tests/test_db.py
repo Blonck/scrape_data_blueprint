@@ -1,6 +1,6 @@
 import unittest
 
-from scraping.db import DbHandler, teams
+from scraping.db import DbHandler, teams, playoff_team
 from sqlalchemy import *
 
 
@@ -27,6 +27,11 @@ class TestDbHandler(unittest.TestCase):
             stmt = select(teams)
             return c.execute(stmt).all()
 
+    def get_playoff_team(self):
+        with self.db.engine.connect() as c:
+            stmt = select(playoff_team.c.year, playoff_team.c.team_name)
+            return c.execute(stmt).all()
+
     def test_merge_team(self):
         # DB is empty, no teams
         self.assertEqual(self.get_teams(), [])
@@ -42,3 +47,23 @@ class TestDbHandler(unittest.TestCase):
         # add second team
         self.db.merge_team('TeamB')
         self.assertEqual(self.get_teams(), [('TeamA', ), ('TeamB', )])
+
+    def test_merge_playoff_team(self):
+        # DB is empty, no playoff teams
+        self.assertEqual(self.get_playoff_team(), [])
+
+        # add playoff team
+        self.db.merge_playoff_team('TeamA', 2020)
+        self.assertEqual(self.get_playoff_team(), [(2020, 'TeamA')])
+
+        # add same team and year again, nothing changes
+        self.db.merge_playoff_team('TeamA', 2020)
+        self.assertEqual(self.get_playoff_team(), [(2020, 'TeamA')])
+
+        self.db.merge_playoff_team('TeamA', 2021)
+        self.assertEqual(sorted(self.get_playoff_team()),
+                         sorted([(2020, 'TeamA'), (2021, 'TeamA')]))
+
+        self.db.merge_playoff_team('TeamB', 2021)
+        self.assertEqual(sorted(self.get_playoff_team()),
+                         sorted([(2020, 'TeamA'), (2021, 'TeamA'), (2021, 'TeamB')]))
