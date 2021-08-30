@@ -1,6 +1,6 @@
 import unittest
 
-from scraping.db import DbHandler, teams, playoff_team
+from scraping.db import DbHandler, teams, playoff_team, team_player
 from sqlalchemy import *
 
 
@@ -30,6 +30,11 @@ class TestDbHandler(unittest.TestCase):
     def get_playoff_team(self):
         with self.db.engine.connect() as c:
             stmt = select(playoff_team.c.year, playoff_team.c.team_name)
+            return c.execute(stmt).all()
+
+    def get_team_player(self):
+        with self.db.engine.connect() as c:
+            stmt = select(team_player.c.player_name, team_player.c.team_name, team_player.c.year)
             return c.execute(stmt).all()
 
     def test_merge_team(self):
@@ -67,3 +72,33 @@ class TestDbHandler(unittest.TestCase):
         self.db.merge_playoff_team('TeamB', 2021)
         self.assertEqual(sorted(self.get_playoff_team()),
                          sorted([(2020, 'TeamA'), (2021, 'TeamA'), (2021, 'TeamB')]))
+
+    def test_merge_team_player(self):
+        # DB is empty, no team player relations
+        self.assertEqual(self.get_team_player(), [])
+
+        # add relation
+        tp01 = ('PlayerA', 'TeamA', 2021)
+        self.db.merge_team_player(player=tp01[0], team=tp01[1], year=tp01[2])
+        self.assertEqual(self.get_team_player(), [tp01])
+
+        # add same relation again, nothing changes
+        self.db.merge_team_player(player=tp01[0], team=tp01[1], year=tp01[2])
+        self.assertEqual(self.get_team_player(), [tp01])
+
+        # change team for same player and year -> still only one entry
+        tp01 = ('PlayerA', 'TeamB', 2021)
+        self.db.merge_team_player(player=tp01[0], team=tp01[1], year=tp01[2])
+        self.assertEqual(self.get_team_player(), [tp01])
+
+        # add second relation
+        tp02 = ('PlayerB', 'TeamB', 2021)
+        self.db.merge_team_player(player=tp02[0], team=tp02[1], year=tp02[2])
+        self.assertEqual(sorted(self.get_team_player()),
+                         sorted([tp01, tp02]))
+
+        # add third relation with different year
+        tp03 = ('PlayerB', 'TeamB', 2019)
+        self.db.merge_team_player(player=tp03[0], team=tp03[1], year=tp03[2])
+        self.assertEqual(sorted(self.get_team_player()),
+                         sorted([tp01, tp02, tp03]))
