@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+
 from typing import List, Optional, Dict, Union
 
 from sqlalchemy import MetaData, create_engine
@@ -269,3 +272,44 @@ class DbHandler():
                 result.append(PlayerYearModel(year=row[0], team=row[1], name=row[2], attributes=att))
 
         return result
+
+    def fetch_player_stats(self, year: int, season: str) -> pd.DataFrame:
+        """
+        Return player statistics for given year and season as pandas DataFrame
+
+        Args:
+            year: Year for which the data is fetched
+            season: Season for which the data is fetched
+        """
+        cols = ['PLAYER', 'STAT_NAME', 'STAT_VALUE', 'STAT_TYPE']
+        df = pd.DataFrame(columns=cols)
+
+        with self.engine.connect() as c:
+            stmt = (
+                select(player_stats.c.player_name, player_stats.c.stat_name,
+                       player_stats.c.stat_value, player_stats.c.stat_type).
+                where(and_(player_stats.c.year == year, player_stats.c.season == season))
+            )
+            r = c.execute(stmt).all()
+
+            df = pd.DataFrame(r, columns=cols)
+
+            def str2type(type_str, value_str):
+                if type_str == 'Integer':
+                    return np.int32(value_str)
+                elif type_str == 'Float':
+                    return np.float64(value_str)
+                else:
+                    return value_str
+
+            # convert types according to stat type
+            # if only Integer and Float types are present, all are transformed implicitly to float
+            df['STAT_VALUE'] = df.apply(lambda x: str2type(x.STAT_TYPE, x.STAT_VALUE), axis=1)
+            df = df.drop(columns=['STAT_TYPE'])
+            df = df.pivot(index='PLAYER', columns=['STAT_NAME'])
+
+            # remove indexed columns
+            df.columns = df.columns.droplevel()
+            df.columns.name = ''
+
+        return df

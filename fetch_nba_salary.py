@@ -109,5 +109,6 @@ def fetch_and_print(year, sqlite, quiet, debug, skip_scraping):
         salary = f'{player.attributes["salary_currency"]}{player.attributes["salary"]}'
         print(f'{player.name},{player.team},{salary}')
 
+
 if __name__ == '__main__':
     fetch_and_print()
