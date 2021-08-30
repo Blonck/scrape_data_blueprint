@@ -25,6 +25,25 @@ def print_salaries_as_csv(salaries):
         print(f'{player.name},{player.team},{salary}')
 
 
+def player_stats_to_db(player, db, year):
+    """Write player statistics to DB"""
+    stats = {}
+    try:
+        stats['games_played'] = int(player.attributes['games_played'])
+        stats['points_per_game'] = float(player.attributes['points_per_game'])
+        stats['assists_per_game'] = float(player.attributes['assists_per_game'])
+        stats['rebounds_per_game'] = float(player.attributes['rebounds_per_game'])
+        stats['minutes_per_game'] = float(player.attributes['minutes_per_game'])
+    except KeyError as e:
+        logging.error(f'Missing statistics for {player} in attributes: {e}')
+        logging.error(player.attributes)
+    except ValueError as e:
+        logging.error(f'Cannot convert statistic for {player} to type: {e}')
+        logging.error(player.attributes)
+    else:
+        db.merge_player_stats(player=player.name, year=year, stats=stats)
+
+
 @click.command()
 @click.argument('year', nargs=1, default=2021)
 @click.option('--sqlite', type=click.Path(exists=False), default=None)
@@ -98,21 +117,7 @@ def fetch_and_print(year, sqlite, quiet, debug, skip_scraping):
             nba_db.merge_player(player.name)
             nba_db.merge_team_player(team=player.team, player=player.name, year=year)
 
-            stats = {}
-            try:
-                stats['games_played'] = int(player.attributes['games_played'])
-                stats['points_per_game'] = float(player.attributes['points_per_game'])
-                stats['assists_per_game'] = float(player.attributes['assists_per_game'])
-                stats['rebounds_per_game'] = float(player.attributes['rebounds_per_game'])
-                stats['minutes_per_game'] = float(player.attributes['minutes_per_game'])
-            except KeyError as e:
-                logging.error(f'Missing statistics for {player} in attributes: {e}')
-                logging.error(player.attributes)
-            except ValueError as e:
-                logging.error(f'Cannot convert statistic for {player} to type: {e}')
-                logging.error(player.attributes)
-            else:
-                nba_db.merge_player_stats(player=player.name, year=year, stats=stats)
+            player_stats_to_db(player, nba_db, year)
 
     # print salaries to csv
     top_salaries = nba_db.fetch_player_salary_playoffs(year, limit=10)
