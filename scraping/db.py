@@ -209,7 +209,7 @@ class DbHandler():
                                player_stats.c.year == year,
                                player_stats.c.stat_name == stat))
                 )
-                r = c.execute(stmt).one()
+                r = c.execute(stmt).one_or_none()
 
                 if r is None:
                     t = type2str(value)
