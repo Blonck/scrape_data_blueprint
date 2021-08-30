@@ -17,6 +17,14 @@ def set_logging_level(quiet, debug):
             logging.basicConfig(level=logging.INFO)
 
 
+def print_salaries_as_csv(salaries):
+    """Print salaries of players to console"""
+    print('#Player,Team,Salary')
+    for player in salaries:
+        salary = f'{player.attributes["salary_currency"]}{player.attributes["salary"]}'
+        print(f'{player.name},{player.team},{salary}')
+
+
 @click.command()
 @click.argument('year', nargs=1, default=2021)
 @click.option('--sqlite', type=click.Path(exists=False), default=None)
@@ -106,13 +114,9 @@ def fetch_and_print(year, sqlite, quiet, debug, skip_scraping):
             else:
                 nba_db.merge_player_stats(player=player.name, year=year, stats=stats)
 
-    # print top 10 players
-
+    # print salaries to csv
     top_salaries = nba_db.fetch_player_salary_playoffs(year, limit=10)
-    print('#Player,Team,Salary')
-    for player in top_salaries:
-        salary = f'{player.attributes["salary_currency"]}{player.attributes["salary"]}'
-        print(f'{player.name},{player.team},{salary}')
+    print_salaries_as_csv(top_salaries)
 
 
 if __name__ == '__main__':
