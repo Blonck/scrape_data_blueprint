@@ -292,6 +292,9 @@ class DbHandler():
             )
             r = c.execute(stmt).all()
 
+            if not r:
+                return df
+
             df = pd.DataFrame(r, columns=cols)
 
             def str2type(type_str, value_str):
