@@ -227,7 +227,7 @@ class DbHandler():
                                stat_type=t)
                     )
                     c.execute(stmt)
-                if r[0] != v or r[1] != t:
+                elif r[0] != v or r[1] != t:
                     stmt = (
                         update(player_stats).
                         where(and_(player_stats.c.player_name == player,
