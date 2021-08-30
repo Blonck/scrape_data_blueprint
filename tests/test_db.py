@@ -1,6 +1,7 @@
 import unittest
 
-from scraping.db import DbHandler
+from scraping.db import DbHandler, teams
+from sqlalchemy import *
 
 
 class TestDbHandler(unittest.TestCase):
@@ -20,3 +21,24 @@ class TestDbHandler(unittest.TestCase):
         cols = ['PLAYER', 'STAT_NAME', 'STAT_VALUE', 'STAT_TYPE']
         self.assertEqual(list(r.columns), cols)
         self.assertTrue(r.empty)
+
+    def get_teams(self):
+        with self.db.engine.connect() as c:
+            stmt = select(teams)
+            return c.execute(stmt).all()
+
+    def test_merge_team(self):
+        # DB is empty, no teams
+        self.assertEqual(self.get_teams(), [])
+
+        # add a Team
+        self.db.merge_team('TeamA')
+        self.assertEqual(self.get_teams(), [('TeamA', )])
+
+        # add same team again, nothing changes
+        self.db.merge_team('TeamA')
+        self.assertEqual(self.get_teams(), [('TeamA', )])
+
+        # add second team
+        self.db.merge_team('TeamB')
+        self.assertEqual(self.get_teams(), [('TeamA', ), ('TeamB', )])
