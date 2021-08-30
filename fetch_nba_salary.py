@@ -6,6 +6,17 @@ from scraping.db import DbHandler
 from scraping.scraping import fetch_teams_playoff, fetch_salary, fetch_team_base_stat_urls, fetch_player_stats_from_team_url
 
 
+def set_logging_level(quiet, debug):
+    """Set the logging level based on `quiet` and `debug` flag"""
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        if quiet:
+            logging.basicConfig(level=logging.ERROR)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
+
 @click.command()
 @click.argument('year', nargs=1, default=2021)
 @click.option('--sqlite', type=click.Path(exists=False), default=None)
@@ -22,13 +33,7 @@ def fetch_and_print(year, sqlite, quiet, debug, skip_scraping):
     The script fetches all data first, and write the results into the DB afterwards.
     Thus if an error occurs while fetching the data, nothing is written to the DB.
     """
-    if debug:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        if quiet:
-            logging.basicConfig(level=logging.ERROR)
-        else:
-            logging.basicConfig(level=logging.INFO)
+    set_logging_level(quiet, debug)
 
     if sqlite is not None:
         sqlite = Path(sqlite).resolve()
