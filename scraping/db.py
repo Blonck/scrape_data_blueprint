@@ -204,16 +204,16 @@ class DbHandler():
         with self.engine.connect() as c:
             for stat, value in stats.items():
                 stmt = (
-                    select(player_stats).
+                    select(player_stats.c.stat_value, player_stats.c.stat_type).
                     where(and_(player_stats.c.player_name == player,
                                player_stats.c.year == year,
                                player_stats.c.stat_name == stat))
                 )
                 r = c.execute(stmt).one_or_none()
 
+                t = type2str(value)
+                v = str(value)
                 if r is None:
-                    t = type2str(value)
-                    v = str(value)
                     stmt = (
                         insert(player_stats).
                         values(player_name=player,
@@ -224,7 +224,18 @@ class DbHandler():
                                stat_type=t)
                     )
                     c.execute(stmt)
-                # TODO: update existing statistics if changed
+                if r[0] != v or r[1] != t:
+                    stmt = (
+                        update(player_stats).
+                        where(and_(player_stats.c.player_name == player,
+                                   player_stats.c.year == year,
+                                   player_stats.c.stat_name == stat)).
+                        values(stat_value=v, stat_type=t)
+                    )
+                    c.execute(stmt)
+                else:
+                    # entry already correct
+                    pass
 
     def fetch_player_salary_playoffs(self, year: int, limit: Optional[int] = None) -> List[PlayerYearModel]:
         """
