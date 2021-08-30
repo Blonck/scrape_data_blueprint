@@ -3,7 +3,7 @@ import click
 from pathlib import Path
 
 from scraping.db import DbHandler
-from scraping.scraping import get_teams_playoff, fetch_salary, get_team_base_stat_urls, get_player_stats_from_team_url
+from scraping.scraping import fetch_teams_playoff, fetch_salary, fetch_team_base_stat_urls, fetch_player_stats_from_team_url
 
 
 @click.command()
@@ -38,7 +38,7 @@ def fetch_and_print(year, sqlite, quiet, debug, skip_scraping):
     nba_db = DbHandler(sqlite)
     if not skip_scraping:
         logging.info('Scraping teams...')
-        teams_playoff = get_teams_playoff(year)
+        teams_playoff = fetch_teams_playoff(year)
         # extract only names of each team in playoff for later filtering
         team_names_playoff = {t.name for t in teams_playoff}
 
@@ -48,14 +48,14 @@ def fetch_and_print(year, sqlite, quiet, debug, skip_scraping):
         # filter for these where team was in playoff
         salaries = [p for p in salaries if p.team in team_names_playoff]
 
-        team_base_urls = get_team_base_stat_urls()
+        team_base_urls = fetch_team_base_stat_urls()
         # filter for teams in playoff
         team_base_urls = {team: url for team, url in team_base_urls.items() if team in team_names_playoff}
 
         logging.info('Scraping player statistics...')
         player_stats = []
         for team, url in team_base_urls.items():
-            player_stats.extend(get_player_stats_from_team_url(team, url, year))
+            player_stats.extend(fetch_player_stats_from_team_url(team, url, year))
 
         # store teams in DB
         logging.info('Insert teams into DB...')

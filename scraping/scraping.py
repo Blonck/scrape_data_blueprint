@@ -41,7 +41,7 @@ def get_bs(url):
         return bs
 
 
-def get_teams_playoff(year) -> List[TeamModel]:
+def fetch_teams_playoff(year) -> List[TeamModel]:
     """Return teams participated in playoffs in given year"""
 
     # use some statistic site which shows postseason stats of a given year to retrieve list of teams participated
@@ -59,7 +59,7 @@ def get_teams_playoff(year) -> List[TeamModel]:
             for a in team_links]
 
 
-def get_salaries_from_url(url) -> List[PlayerYearModel]:
+def fetch_salaries_from_url(url) -> List[PlayerYearModel]:
     """Extract salary of all players from the given url"""
     bs = get_bs(url)
     # first find the salary table
@@ -130,7 +130,7 @@ def fetch_salary(year):
     while True:
         logger.debug(f'Retrieving salaries for {year}, page {page}')
         url_player_salaries = player_salary_url(year, page)
-        salaries = get_salaries_from_url(url_player_salaries)
+        salaries = fetch_salaries_from_url(url_player_salaries)
 
         if len(salaries) == 0:
             logger.debug(f'Fetched all salaries for {year}')
@@ -144,7 +144,7 @@ def fetch_salary(year):
     return salaries_full
 
 
-def get_team_base_stat_urls():
+def fetch_team_base_stat_urls():
     """Fetch list of all urls for team statistics"""
     urls = {}
 
@@ -180,7 +180,7 @@ def get_team_base_stat_urls():
     return urls
 
 
-def get_player_stats_from_team_url(team, team_stat_base_url, year):
+def fetch_player_stats_from_team_url(team, team_stat_base_url, year):
     """Retrieve player statistics from team url for given year (postseason)"""
     team_stat_url = f'{team_stat_base_url}/season/{year}/seasontype/3'
 
